@@ -35,13 +35,11 @@ export async function getMemorySearchManager(params: {
         resolved,
       });
       if (primary) {
+        // QMD backend configured: never fall back to builtin (which checks API keys).
         const wrapper = new FallbackMemoryManager(
           {
             primary,
-            fallbackFactory: async () => {
-              const { MemoryIndexManager } = await import("./manager.js");
-              return await MemoryIndexManager.get(params);
-            },
+            fallbackFactory: async () => null,
           },
           () => QMD_MANAGER_CACHE.delete(cacheKey),
         );
@@ -50,7 +48,8 @@ export async function getMemorySearchManager(params: {
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
-      log.warn(`qmd memory unavailable; falling back to builtin: ${message}`);
+      // QMD backend configured: report error directly instead of falling back.
+      return { manager: null, error: message };
     }
   }
 

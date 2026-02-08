@@ -115,9 +115,7 @@ describe("getMemorySearchManager caching", () => {
       throw new Error("manager missing");
     }
 
-    const fallbackResults = await first.manager.search("hello");
-    expect(fallbackResults).toHaveLength(1);
-    expect(fallbackResults[0]?.path).toBe("MEMORY.md");
+    await expect(first.manager.search("hello")).rejects.toThrow("qmd query failed");
 
     const second = await getMemorySearchManager({ cfg, agentId: retryAgentId });
     expect(second.manager).toBeTruthy();
@@ -140,7 +138,7 @@ describe("getMemorySearchManager caching", () => {
     if (!first.manager) {
       throw new Error("manager missing");
     }
-    await first.manager.search("hello");
+    await expect(first.manager.search("hello")).rejects.toThrow("qmd query failed");
 
     const second = await getMemorySearchManager({ cfg, agentId: retryAgentId });
     expect(second.manager).toBeTruthy();
@@ -157,7 +155,7 @@ describe("getMemorySearchManager caching", () => {
     expect(QmdMemoryManager.create).toHaveBeenCalledTimes(2);
   });
 
-  it("falls back to builtin search when qmd fails with sqlite busy", async () => {
+  it("reports error (no fallback) when qmd fails with sqlite busy", async () => {
     const retryAgentId = "retry-agent-busy";
     const cfg = {
       memory: { backend: "qmd", qmd: {} },
@@ -174,9 +172,7 @@ describe("getMemorySearchManager caching", () => {
       throw new Error("manager missing");
     }
 
-    const results = await first.manager.search("hello");
-    expect(results).toHaveLength(1);
-    expect(results[0]?.path).toBe("MEMORY.md");
-    expect(fallbackSearch).toHaveBeenCalledTimes(1);
+    await expect(first.manager.search("hello")).rejects.toThrow("database is locked");
+    expect(fallbackSearch).not.toHaveBeenCalled();
   });
 });
